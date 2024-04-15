@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "stock-crawler"
+version = "0.1.0"
+description = ""
+authors = ["Poriteslutea <rubymagoo@gmail.com>"]
+readme = "README.md"
+packages = [{include = "stock_crawler"}]
+keywords = ["python", "financial"]
+classifiers = [
+"Development Status :: 3 — Alpha",
+"Intended Audience :: Developers",
+"Operating System :: Linux",
+"License :: OSI Approved :: MIT License",
+"Programming Language :: Python :: 3.10",
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.2.2"
+requests = "^2.31.0"
+pydantic = "^2.7.0"
+loguru = "^0.7.2"
+sqlalchemy = "^2.0.29"
+psycopg2-binary = "2.9.6"
+yfinance = "0.2.33"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
