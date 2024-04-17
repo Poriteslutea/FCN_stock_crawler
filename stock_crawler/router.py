@@ -2,7 +2,7 @@ import time
 import typing
 
 from loguru import logger
-from sqlalchemy import engine 
+from sqlalchemy import engine, text
 
 from stock_crawler import clients
 
@@ -10,7 +10,9 @@ def check_alive(
     connect: engine.base.Connection
 ):
     """check if connect alive before every use"""
-    connect.execute("SELECT 1 + 1")
+
+    sql_stmt = text("SELECT 1 + 1")
+    connect.execute(sql_stmt)
 
 
 def reconnect(
@@ -51,7 +53,7 @@ def check_connect_alive(
 
 class Router:
     def __init__(self):
-        self._postgres_fcn_conn = clients.get_postgres_fcn_conn
+        self._postgres_fcn_conn = clients.get_postgres_fcn_conn()
     
     def check_postgres_fcn_conn_alive(self):
 
