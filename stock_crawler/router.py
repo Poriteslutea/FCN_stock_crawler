@@ -6,6 +6,7 @@ from sqlalchemy import engine, text
 
 from stock_crawler import clients
 
+
 def check_alive(
     connect: engine.base.Connection
 ):
@@ -54,6 +55,7 @@ def check_connect_alive(
 class Router:
     def __init__(self):
         self._postgres_fcn_conn = clients.get_postgres_fcn_conn()
+        self.engine = clients.get_engine()
     
     def check_postgres_fcn_conn_alive(self):
 

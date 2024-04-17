@@ -5,8 +5,8 @@ import sys
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from pydantic import BaseModel
 from loguru import logger
+
 
 from router import Router
 from schema import Product
@@ -169,9 +169,9 @@ def report_to_db(report: pd.DataFrame, product: Product, db_router: Router):
     try:
         ret_df.to_sql(
             name='daily_report',
-            con=db_router.postgres_fcn_conn, 
+            con=db_router.engine, 
             schema='public',
-            if_exists='replace',
+            if_exists='append',
             index=False)
         print(ret_df)
         return ret_df
@@ -255,6 +255,7 @@ def import_product(product: Product, db_router: Router):
             ki_limit=product.ki_limit,
             price_type=product.price_type) 
         report_to_db(report=df, product=product, db_router=db_router)
+    
         logger.info(f'產品{product.code}已初始化至資料庫')
     
 
@@ -287,10 +288,39 @@ def main(product_code):
     product = get_product(product_code, db_router)
     import_product(product, db_router)
     
-   
+
+def test(product_code):
+    db_router = Router()
+    product = get_product(product_code, db_router)
+    stock_report_row = {}
+    stock_report_row['id'] = 1
+    stock_report_row['product_id_fk'] = product.id
+    stock_report_row['stock_id_fk'] = 1
+    stock_report_row['date'] = pd.Timestamp.today().normalize()
+    stock_report_row['close'] = 139.97001
+    stock_report_row['ko_base'] = 139.18454
+    stock_report_row['ki_base'] = 83.946005
+    stock_report_row['ko_diff'] = 0.0000
+    stock_report_row['ki_diff'] = 40.0000
+    stock_report_row['is_ko'] = True
+    stock_report_row['is_ki'] = False
+
+    df = pd.DataFrame([stock_report_row])
+    dd = pd.DataFrame([{'email': 'abccccc@gmail.com', 'password_hash': 'dflsefdfdfdfdfdfdf'}])
+    dd.to_sql(
+        name='member',
+            con=db_router.engine, 
+            schema='public',
+            if_exists='append',
+            index=False
+    )
+    print('done!')
+
+
 
 if __name__ == "__main__":
     product_code = sys.argv[1]
     main(product_code)
+    
   
 
