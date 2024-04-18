@@ -1,0 +1,14 @@
+FROM python:3.10-slim
+
+RUN mkdir /fcn
+COPY . /fcn/
+WORKDIR /fcn/
+
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+RUN pip3 install poetry==1.8.2
+RUN poetry install
+
+RUN VERSION=RELEASE python3 genenv.py
+

@@ -1,0 +1,18 @@
+version: '3.3'
+
+services:
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler
+    container_name: fcn-scheduler
+    restart: always
+    command: poetry run python stock_crawler/scheduler.py
+    networks:
+      - fcn_network
+      
+networks:
+  fcn_network:
+    external: true
+
+  

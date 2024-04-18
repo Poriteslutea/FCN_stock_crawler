@@ -1,0 +1,5 @@
+FROM postgres:latest
+
+RUN mkdir /fcn
+COPY sql/. /fcn/
+WORKDIR /fcn/

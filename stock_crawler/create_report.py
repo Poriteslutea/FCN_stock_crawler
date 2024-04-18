@@ -295,34 +295,7 @@ def main(product_code):
     db_router = Router()
     product = get_product(product_code, db_router)
     import_product(product, db_router)
-    
 
-def test(product_code):
-    db_router = Router()
-    product = get_product(product_code, db_router)
-    stock_report_row = {}
-    stock_report_row['id'] = 1
-    stock_report_row['product_id_fk'] = product.id
-    stock_report_row['stock_id_fk'] = 1
-    stock_report_row['date'] = pd.Timestamp.today().normalize()
-    stock_report_row['close'] = 139.97001
-    stock_report_row['ko_base'] = 139.18454
-    stock_report_row['ki_base'] = 83.946005
-    stock_report_row['ko_diff'] = 0.0000
-    stock_report_row['ki_diff'] = 40.0000
-    stock_report_row['is_ko'] = True
-    stock_report_row['is_ki'] = False
-
-    df = pd.DataFrame([stock_report_row])
-    dd = pd.DataFrame([{'email': 'abccccc@gmail.com', 'password_hash': 'dflsefdfdfdfdfdfdf'}])
-    dd.to_sql(
-        name='member',
-            con=db_router.engine, 
-            schema='public',
-            if_exists='append',
-            index=False
-    )
-    print('done!')
 
 
 

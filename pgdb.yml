@@ -4,19 +4,19 @@ services:
   postgres:
     build:
       context: .
-      dockerfile: Dockerfile.db
-    container_name: fcn-postgres
-    restart: always
+      dockerfile: Dockerfile.pgdb
     environment:
       POSTGRES_USER: 'admin'
       POSTGRES_PASSWORD: '0220'
-      POSTGRES_DB: 'fcn2'
+      POSTGRES_DB: 'fcn'
+    container_name: fcn-postgres
+    restart: always
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
       - 5435:5432
     networks:
-      - dev
+      - fcn_network
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -26,14 +26,17 @@ services:
       - "5050:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+
     environment:
       PGADMIN_DEFAULT_EMAIL: 'rubymagoo@gmail.com'
       PGADMIN_DEFAULT_PASSWORD: '74870220'
+
     networks:
-      - dev
+      - fcn_network
 
 networks:
-  dev:
+  fcn_network:
+    external: true
 
 volumes:
   postgres-data:
