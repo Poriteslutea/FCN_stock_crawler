@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 class Product(BaseModel):
     id: int
@@ -9,3 +10,4 @@ class Product(BaseModel):
     ko_limit: float
     ki_limit: float
     price_type: str
+    stock_list: List[dict]

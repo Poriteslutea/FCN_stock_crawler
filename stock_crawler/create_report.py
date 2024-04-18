@@ -65,18 +65,24 @@ def replace_after(df, condition_type, critical_val, replace_val):
     return dd
 
 
-def get_hist_report(stock_code: List[str], 
-                    start_date: str, 
-                    end_date: str, 
-                    start_trace_date: str,
-                    ko_limit: float=1.0,
-                    ki_limit: float=0.6, 
-                    price_type: str='Close') -> pd.DataFrame:
+def get_hist_report(product: Product,
+                    report_start_date: str,
+                    report_end_date: str
+                    ) -> pd.DataFrame:
+    
+    stock_codes = [st['code'] for st in product.stock_list]
+    start_date = product.start_date
+    end_date = product.end_date
+    price_type = product.price_type
+    start_trace_date = product.start_trace_date
+    ko_limit = product.ko_limit
+    ki_limit = product.ki_limit
 
-    stock_hist = get_hist_price(stock_code=stock_code, 
+    stock_hist = get_hist_price(stock_code=stock_codes, 
                                 start_date=start_date, 
                                 end_date=end_date, 
                                 price_type=price_type)
+    
 
     # 得到與ko及ki的差距比例(%)
     ko_diff = stock_hist.sub(stock_hist.iloc[0] * ko_limit).div(stock_hist) * 100
@@ -88,14 +94,17 @@ def get_hist_report(stock_code: List[str],
 
     # 當每支股票遇到ko差值大於等於0的情況時（目前價>=起始價) 後面都變nan值 （從起始追蹤日開始判斷)
     start_trace_dt = datetime.strptime(start_trace_date, '%Y-%m-%d')
-    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-    if start_trace_dt > end_dt:
+    report_start_dt = datetime.strptime(report_start_date, '%Y-%m-%d')
+    report_end_dt = datetime.strptime(report_end_date, '%Y-%m-%d')
+
+    if start_trace_dt > report_end_dt:
         logger.info('還未到達開始追蹤日期')
         merge_df = ko_diff.merge(ki_diff, left_index=True, right_index=True).merge(stock_hist, left_index=True, right_index=True)
         return merge_df
     elif start_trace_date not in stock_hist.index:
         raise ValueError('開始追蹤日期不能給假日(不能給沒開市的日期)')
-    
+        
+    # 從開始追蹤日期後ko的話就不再記
     ts_list = []
     for c in ko_diff.columns:
         ts = replace_after(ko_diff[c].loc[start_trace_date:], '>=', 0, np.nan)
@@ -114,18 +123,26 @@ def get_hist_report(stock_code: List[str],
 
     # 將產品開始到產品結束（可能會因all ko而提前結束)的資料合併起來
     merge_df = ko.merge(ki, left_index=True, right_index=True).merge(stock_hist, left_index=True, right_index=True)
+    merge_df.reset_index(inplace=True)
+    print(merge_df)
+    filter_df = merge_df[pd.to_datetime(merge_df['Date']) >= report_start_dt]
+    base_row = merge_df.head(1)
+    result_df = pd.concat([base_row, filter_df])
+    print(result_df)
 
-    return merge_df
+    return result_df
 
 
-def get_stock_list_by_product(product: Product, db_router: Router):
+def get_stock_list_by_product(product_code: str, db_router: Router):
 
     sql_stmt = f"""
         select stock.code, stock.id
         from stock 
         join product_stock as ps on stock.id = ps.stock_id
-        where ps.product_id = {product.id} 
+        join product as p on ps.product_id = p.id
+        where p.code = '{product_code}'
         """
+
     try:
         stock_df = pd.read_sql(sql_stmt, db_router.postgres_fcn_conn)
         stock_list = stock_df.to_dict('records')
@@ -141,14 +158,15 @@ def report_to_db(report: pd.DataFrame, product: Product, db_router: Router):
     product_id = product.id 
     ko_limit = product.ko_limit
     ki_limit = product.ki_limit
-    stock_list = get_stock_list_by_product(product, db_router)
+    stock_list = product.stock_list
 
     report.reset_index(inplace=True)
     report_rc = report.to_dict('records')
     base_row = report_rc[0]
 
     ret = []
-    for row in report_rc:
+    print(report_rc)
+    for row in report_rc[1:]:
         date = row['Date']
         for st in stock_list:
             stock_report_row = {}
@@ -173,15 +191,12 @@ def report_to_db(report: pd.DataFrame, product: Product, db_router: Router):
             schema='public',
             if_exists='append',
             index=False)
-        print(ret_df)
+        
         return ret_df
     except Exception as e:
         logger.info(f'import到資料庫失敗：{e}')
 
     return 
-    
-    
-
 
           
 
@@ -194,8 +209,7 @@ def import_product(product: Product, db_router: Router):
     curr_date = curr_dt.strftime('%Y-%m-%d')
     start_dt = datetime.strptime(product.start_date, '%Y-%m-%d')
     end_dt = datetime.strptime(product.end_date, '%Y-%m-%d')
-    stock_list = get_stock_list_by_product(product, db_router)
-    stock_code_list = [st['code'] for st in stock_list]
+    stock_list = product.stock_list
    
     # 還沒開始
     if curr_dt < start_dt:
@@ -210,12 +224,11 @@ def import_product(product: Product, db_router: Router):
     # 確認資料庫有沒有產品資料
     
     sql_stmt = f'''
-        select product_id_fk 
+        select product_id_fk, date 
         from daily_report 
         where product_id_fk = {product.id}
         '''
     df = pd.read_sql(sql_stmt, db_router.postgres_fcn_conn)
-    print('目前report', df)
 
     if len(df) > 0:
         df['date'] = pd.to_datetime(df['date'])
@@ -228,32 +241,25 @@ def import_product(product: Product, db_router: Router):
             start_date = start_dt.strftime('%Y-%m-%d')
 
             df = get_hist_report(
-                stock_code=stock_code_list, 
-                start_date=start_date, 
-                end_date=curr_date, 
-                start_trace_date=product.start_trace_date, 
-                ko_limit=product.ko_limit, 
-                ki_limit=product.ki_limit,
-                price_type=product.price_type) 
+                product=product,
+                report_start_date=start_date,
+                report_end_date=curr_date
+            ) 
             
             report_to_db(report=df, product=product, db_router=db_router)
             
-            logger.info(f'產品{product.code}已更新至資料庫')
+            logger.info(f'產品{product.code}已更新至資料庫，從{start_date}開始更新')
         else:
-            logger.info(f'產品{product.code}已更新至資料庫')
+            logger.info(f'產品{product.code}已更新到最新日期')
             return 
 
     
     else:
         # 資料庫還沒有產品資料（要進行初始化 - 從開始日期計算到當前日期，並將結果存至db中daily_report的table)
         df = get_hist_report(
-            stock_code=stock_code_list, 
-            start_date=product.start_date, 
-            end_date=curr_date, 
-            start_trace_date=product.start_trace_date, 
-            ko_limit=product.ko_limit, 
-            ki_limit=product.ki_limit,
-            price_type=product.price_type) 
+            product=product,
+            report_start_date=product.start_date,
+            report_end_date=curr_date) 
         report_to_db(report=df, product=product, db_router=db_router)
     
         logger.info(f'產品{product.code}已初始化至資料庫')
@@ -266,6 +272,7 @@ def get_product(product_code: str, db_router: Router) -> Union[Product, None]:
     
     sql_stmt = f"select * from product where product.code = '{product_code}'"
     df = pd.read_sql(sql_stmt, db_router.postgres_fcn_conn)
+    stock_list = get_stock_list_by_product(product_code, db_router)
     if len(df) > 0:
         product = Product(
             id=df['id'].iloc[0],
@@ -275,7 +282,8 @@ def get_product(product_code: str, db_router: Router) -> Union[Product, None]:
             end_date=df['end_date'].iloc[0].strftime('%Y-%m-%d'),
             ko_limit=df['ko_limit'].iloc[0],
             ki_limit=df['ki_limit'].iloc[0],
-            price_type=df['price_type'].iloc[0]
+            price_type=df['price_type'].iloc[0],
+            stock_list=stock_list
         )
 
         return product
