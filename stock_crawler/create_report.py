@@ -124,11 +124,10 @@ def get_hist_report(product: Product,
     # 將產品開始到產品結束（可能會因all ko而提前結束)的資料合併起來
     merge_df = ko.merge(ki, left_index=True, right_index=True).merge(stock_hist, left_index=True, right_index=True)
     merge_df.reset_index(inplace=True)
-    print(merge_df)
     filter_df = merge_df[pd.to_datetime(merge_df['Date']) >= report_start_dt]
     base_row = merge_df.head(1)
     result_df = pd.concat([base_row, filter_df])
-    print(result_df)
+
 
     return result_df
 
@@ -165,7 +164,6 @@ def report_to_db(report: pd.DataFrame, product: Product, db_router: Router):
     base_row = report_rc[0]
 
     ret = []
-    print(report_rc)
     for row in report_rc[1:]:
         date = row['Date']
         for st in stock_list:

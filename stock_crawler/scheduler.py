@@ -20,7 +20,7 @@ def scheduler():
         trigger="cron",
         hour="8",
         minute="0",
-        day_of_week="mon-fri"
+        day_of_week="mon-sat"
     )
 
     logger.info("Update stock report for product: SLN35...")
