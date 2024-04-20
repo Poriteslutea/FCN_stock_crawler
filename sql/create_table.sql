@@ -1,7 +1,9 @@
 CREATE TABLE member (
     id SERIAL PRIMARY KEY,
     email VARCHAR(100) NOT NULL,
-    password_hash VARCHAR(100) NOT NULL 
+    name VARCHAR(100) NOT NULL,
+    password_hash VARCHAR(100) NOT NULL,
+    disabled BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE product (
