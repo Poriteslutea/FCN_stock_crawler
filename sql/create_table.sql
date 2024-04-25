@@ -23,7 +23,7 @@ CREATE TABLE stock (
 );
 
 CREATE TABLE daily_report (
-    id SERIAL NOT NULL,
+    id SERIAL PRIMARY KEY,
     product_id_fk INT REFERENCES product(id),
     stock_id_fk INT REFERENCES stock(id),
     date DATE,
@@ -34,7 +34,7 @@ CREATE TABLE daily_report (
     ki_diff NUMERIC(10, 2),
     is_ko BOOLEAN,
     is_ki BOOLEAN,
-    PRIMARY KEY (product_id_fk, stock_id_fk, date) 
+    UNIQUE (product_id_fk, stock_id_fk, date)
 );
 
 CREATE TABLE member_product (
