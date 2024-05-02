@@ -288,18 +288,45 @@ def get_product(product_code: str, db_router: Router) -> Union[Product, None]:
     else:
         logger.info(f"找不到product: {product_code}")
         return None
+
+def get_all_product(db_router: Router) -> List[Union[Product, None]]:
+
+    sql_stmt = f"select * from product"
+    df = pd.read_sql(sql_stmt, db_router.postgres_fcn_conn)
+    print(df)
+    df['stock_list'] = df.apply(lambda x: get_stock_list_by_product(x['code'], db_router), axis=1)
+    if len(df) == 0:
+        return []
+    ret = []
+    for row in df.to_dict('records'):
+        product = Product(
+            id=row['id'],
+            code=row['code'],
+            start_date=row['start_date'].strftime('%Y-%m-%d'),
+            start_trace_date=row['start_trace_date'].strftime('%Y-%m-%d'),
+            end_date=row['end_date'].strftime('%Y-%m-%d'),
+            ko_limit=row['ko_limit'],
+            ki_limit=row['ki_limit'],
+            price_type=row['price_type'],
+            stock_list=row['stock_list']
+        )
+        ret.append(product)
     
-def main(product_code):
+    return ret
+
+
+
+def main():
     db_router = Router()
-    product = get_product(product_code, db_router)
-    import_product(product, db_router)
-
-
+    product_list = get_all_product(db_router)
+    for product in product_list:
+        import_product(product, db_router)
 
 
 if __name__ == "__main__":
-    product_code = sys.argv[1]
-    main(product_code)
+    # product_code = sys.argv[1]
+    main()
+    
     
   
 

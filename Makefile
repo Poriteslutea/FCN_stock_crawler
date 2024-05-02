@@ -24,4 +24,4 @@ gen-release-env:
 
 # 更新report (SLN35)
 update-report:
-	poetry run python stock_crawler/create_report.py SLN35
+	poetry run python stock_crawler/create_report.py

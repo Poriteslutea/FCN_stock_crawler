@@ -7,7 +7,7 @@ from create_report import main
 from loguru import logger
 
 def update_stock_report():
-    main('SLN35')
+    main()
 
 def scheduler():
     scheduler = BackgroundScheduler(
