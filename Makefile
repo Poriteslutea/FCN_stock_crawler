@@ -25,3 +25,7 @@ gen-release-env:
 # 更新report (SLN35)
 update-report:
 	poetry run python stock_crawler/create_report.py
+
+# 啟動rabbitMQ
+create-rabbit:
+	docker compose -f rabbitmq.yml up -d
